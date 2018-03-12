@@ -91,23 +91,7 @@ class CompletionProvider
         'var',
         'while',
         'xor',
-        'yield',
-
-        // List of other reserved words (http://php.net/manual/en/reserved.other-reserved-words.php)
-        // (the ones which do not occur as actual keywords above.)
-        'int',
-        'float',
-        'bool',
-        'string',
-        'void',
-        'iterable',
-        'object',
-
-        // Pseudo keywords
-        'from', // As in yield from
-        'strict_types',
-        'ticks', // As in declare(ticks=1)
-        'encoding', // As in declare(encoding='EBCDIC')
+        'yield'
     ];
 
     /**
