@@ -1,17 +1,21 @@
 <?php
-declare(strict_types = 1);
+declare (strict_types = 1);
 
 namespace LanguageServer;
 
-use LanguageServer\Index\ReadableIndex;
-use LanguageServer\Factory\SymbolInformationFactory;
 use LanguageServerProtocol\SymbolInformation;
+use LanguageServer\Factory\SymbolInformationFactory;
+use LanguageServer\Index\ReadableIndex;
 use Microsoft\PhpParser;
-use Microsoft\PhpParser\Node;
 use Microsoft\PhpParser\FunctionLike;
-use phpDocumentor\Reflection\{
-    DocBlock, DocBlockFactory, Fqsen, Type, TypeResolver, Types
-};
+use Microsoft\PhpParser\Node;
+use phpDocumentor\Reflection\DocBlock;
+use phpDocumentor\Reflection\DocBlockFactory;
+use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
+use phpDocumentor\Reflection\Fqsen;
+use phpDocumentor\Reflection\Type;
+use phpDocumentor\Reflection\TypeResolver;
+use phpDocumentor\Reflection\Types;
 
 class DefinitionResolver
 {
@@ -148,13 +152,13 @@ class DefinitionResolver
         // TODO make more efficient (caching, ensure import table is in right format to begin with)
         $docCommentText = $node->getDocCommentText();
         if ($docCommentText !== null) {
-            list($namespaceImportTable,,) = $node->getImportTablesForCurrentScope();
+            list($namespaceImportTable) = $node->getImportTablesForCurrentScope();
             foreach ($namespaceImportTable as $alias => $name) {
-                $namespaceImportTable[$alias] = (string)$name;
+                $namespaceImportTable[$alias] = (string) $name;
             }
             $namespaceDefinition = $node->getNamespaceDefinition();
             if ($namespaceDefinition !== null && $namespaceDefinition->name !== null) {
-                $namespaceName = (string)$namespaceDefinition->name->getNamespacedName();
+                $namespaceName = (string) $namespaceDefinition->name->getNamespacedName();
             } else {
                 $namespaceName = 'global';
             }
@@ -164,7 +168,7 @@ class DefinitionResolver
                 // create() throws when it thinks the doc comment has invalid fields.
                 // For example, a @see tag that is followed by something that doesn't look like a valid fqsen will throw.
                 return $this->docBlockFactory->create($docCommentText, $context);
-            } catch (\InvalidArgumentException $e) {
+            } catch (\InvalidArgumentException$e) {
                 return null;
             }
         }
@@ -216,13 +220,13 @@ class DefinitionResolver
             ($node instanceof Node\MethodDeclaration && $node->isStatic()) ||
 
             (($propertyDeclaration = ParserHelpers\tryGetPropertyDeclaration($node)) !== null
-            && $propertyDeclaration->isStatic())
+                && $propertyDeclaration->isStatic())
         );
 
         if ($node instanceof Node\Statement\ClassDeclaration &&
             // TODO - this should be better represented in the parser API
             $node->classBaseClause !== null && $node->classBaseClause->baseClass !== null) {
-            $def->extends = [(string)$node->classBaseClause->baseClass->getResolvedName()];
+            $def->extends = [(string) $node->classBaseClause->baseClass->getResolvedName()];
         } elseif (
             $node instanceof Node\Statement\InterfaceDeclaration &&
             // TODO - this should be better represented in the parser API
@@ -230,7 +234,7 @@ class DefinitionResolver
         ) {
             $def->extends = [];
             foreach ($node->interfaceBaseClause->interfaceNameList->getValues() as $n) {
-                $def->extends[] = (string)$n->getResolvedName();
+                $def->extends[] = (string) $n->getResolvedName();
             }
         }
 
@@ -289,7 +293,7 @@ class DefinitionResolver
             if (!$classNode) {
                 return;
             }
-            $fqn = (string)$classNode->getNamespacedName();
+            $fqn = (string) $classNode->getNamespacedName();
             if (!$fqn) {
                 return;
             }
@@ -299,7 +303,7 @@ class DefinitionResolver
             if (!$classNode || !$classNode->classBaseClause || !$classNode->classBaseClause->baseClass) {
                 return;
             }
-            $fqn = (string)$classNode->classBaseClause->baseClass->getResolvedName();
+            $fqn = (string) $classNode->classBaseClause->baseClass->getResolvedName();
             if (!$fqn) {
                 return;
             }
@@ -330,7 +334,7 @@ class DefinitionResolver
         } else if ($node instanceof Node\Expression\MemberAccessExpression) {
             return $this->resolveMemberAccessExpressionNodeToFqn($node);
         } else if (ParserHelpers\isConstantFetch($node)) {
-            return (string)($node->getNamespacedName());
+            return (string) ($node->getNamespacedName());
         } else if (
             // A\B::C - constant access expression
             $node instanceof Node\Expression\ScopedPropertyAccessExpression
@@ -347,7 +351,7 @@ class DefinitionResolver
         return null;
     }
 
-    private function resolveQualifiedNameNodeToFqn(Node\QualifiedName $node)
+    private function resolveQualifiedNameNodeToFqn(Node\QualifiedName$node)
     {
         $parent = $node->parent;
 
@@ -366,7 +370,7 @@ class DefinitionResolver
                 }
                 $name = PhpParser\ResolvedName::buildName($prefix->nameParts, $contents);
                 $name->addNameParts($node->nameParts, $contents);
-                $name = (string)$name;
+                $name = (string) $name;
 
                 if ($useClause->functionOrConst === null) {
                     $useClause = $node->getFirstAncestor(Node\Statement\NamespaceUseDeclaration::class);
@@ -394,7 +398,7 @@ class DefinitionResolver
         return $name;
     }
 
-    private function resolveMemberAccessExpressionNodeToFqn(Node\Expression\MemberAccessExpression $access)
+    private function resolveMemberAccessExpressionNodeToFqn(Node\Expression\MemberAccessExpression$access)
     {
         if ($access->memberName instanceof Node\Expression) {
             // Cannot get definition if right-hand side is expression
@@ -429,9 +433,9 @@ class DefinitionResolver
             // Left-hand expression could not be resolved to a class
             return null;
         } else {
-            $classFqn = substr((string)$varType->getFqsen(), 1);
+            $classFqn = substr((string) $varType->getFqsen(), 1);
         }
-        $memberSuffix = '->' . (string)($access->memberName->getText() ?? $access->memberName->getText($access->getFileContents()));
+        $memberSuffix = '->' . (string) ($access->memberName->getText() ?? $access->memberName->getText($access->getFileContents()));
         if ($access->parent instanceof Node\Expression\CallExpression) {
             $memberSuffix .= '()';
         }
@@ -467,16 +471,16 @@ class DefinitionResolver
         return $classFqn . $memberSuffix;
     }
 
-    private function resolveScopedPropertyAccessExpressionNodeToFqn(Node\Expression\ScopedPropertyAccessExpression $scoped)
+    private function resolveScopedPropertyAccessExpressionNodeToFqn(Node\Expression\ScopedPropertyAccessExpression$scoped)
     {
         if ($scoped->scopeResolutionQualifier instanceof Node\Expression\Variable) {
             $varType = $this->getTypeFromNode($scoped->scopeResolutionQualifier);
             if ($varType === null) {
                 return null;
             }
-            $className = substr((string)$varType->getFqsen(), 1);
+            $className = substr((string) $varType->getFqsen(), 1);
         } elseif ($scoped->scopeResolutionQualifier instanceof Node\QualifiedName) {
-            $className = (string)$scoped->scopeResolutionQualifier->getResolvedName();
+            $className = (string) $scoped->scopeResolutionQualifier->getResolvedName();
         } else {
             return null;
         }
@@ -492,9 +496,9 @@ class DefinitionResolver
                 if (!isset($classNode->extends)) {
                     return null;
                 }
-                $className = (string)$classNode->extends->getResolvedName();
+                $className = (string) $classNode->extends->getResolvedName();
             } else {
-                $className = (string)$classNode->getNamespacedName();
+                $className = (string) $classNode->getNamespacedName();
             }
         } elseif ($scoped->scopeResolutionQualifier instanceof Node\QualifiedName) {
             $className = $scoped->scopeResolutionQualifier->getResolvedName();
@@ -507,9 +511,9 @@ class DefinitionResolver
             if (empty($memberName)) {
                 return null;
             }
-            $name = (string)$className . '::$' . $memberName;
+            $name = (string) $className . '::$' . $memberName;
         } else {
-            $name = (string)$className . '::' . $scoped->memberName->getText($scoped->getFileContents());
+            $name = (string) $className . '::' . $scoped->memberName->getText($scoped->getFileContents());
         }
         if ($scoped->parent instanceof Node\Expression\CallExpression) {
             $name .= '()';
@@ -530,7 +534,7 @@ class DefinitionResolver
         if ($classNode === null) {
             return null;
         }
-        return (string)$classNode->getNamespacedName();
+        return (string) $classNode->getNamespacedName();
     }
 
     /**
@@ -728,7 +732,7 @@ class DefinitionResolver
         // CONSTANT FETCH
         // Resolve constants by retrieving corresponding definition type from FQN
         if (ParserHelpers\isConstantFetch($expr)) {
-            $fqn = (string)$expr->getNamespacedName();
+            $fqn = (string) $expr->getNamespacedName();
             $def = $this->index->getDefinition($fqn, true);
             if ($def !== null) {
                 return $def->type;
@@ -752,7 +756,7 @@ class DefinitionResolver
             }
             $var = $expr->dereferencableExpression;
 
-           // Resolve object
+            // Resolve object
             $objType = $this->resolveExpressionNodeToType($var);
             if (!($objType instanceof Types\Compound)) {
                 $objType = new Types\Compound([$objType]);
@@ -766,7 +770,7 @@ class DefinitionResolver
                 } else if (!($t instanceof Types\Object_) || $t->getFqsen() === null) {
                     return new Types\Mixed_;
                 } else {
-                    $classFqn = substr((string)$t->getFqsen(), 1);
+                    $classFqn = substr((string) $t->getFqsen(), 1);
                 }
                 $add = '->' . $expr->memberName->getText($expr->getFileContents());
                 if ($expr->parent instanceof Node\Expression\CallExpression) {
@@ -793,7 +797,7 @@ class DefinitionResolver
             if (!($classType instanceof Types\Object_) || $classType->getFqsen() === null) {
                 return new Types\Mixed_;
             }
-            $fqn = substr((string)$classType->getFqsen(), 1) . '::';
+            $fqn = substr((string) $classType->getFqsen(), 1) . '::';
 
             // TODO is there a cleaner way to do this?
             $fqn .= $expr->memberName->getText() ?? $expr->memberName->getText($expr->getFileContents());
@@ -835,13 +839,13 @@ class DefinitionResolver
             if ($expr->ifExpression === null) {
                 return new Types\Compound([
                     $this->resolveExpressionNodeToType($expr->condition), // TODO: why?
-                    $this->resolveExpressionNodeToType($expr->elseExpression)
+                    $this->resolveExpressionNodeToType($expr->elseExpression),
                 ]);
             }
             // Ternary is a compound of the two possible values
             return new Types\Compound([
                 $this->resolveExpressionNodeToType($expr->ifExpression),
-                $this->resolveExpressionNodeToType($expr->elseExpression)
+                $this->resolveExpressionNodeToType($expr->elseExpression),
             ]);
         }
 
@@ -851,7 +855,7 @@ class DefinitionResolver
             // ?? operator
             return new Types\Compound([
                 $this->resolveExpressionNodeToType($expr->leftOperand),
-                $this->resolveExpressionNodeToType($expr->rightOperand)
+                $this->resolveExpressionNodeToType($expr->rightOperand),
             ]);
         }
 
@@ -902,7 +906,7 @@ class DefinitionResolver
                 $operator === PhpParser\TokenKind::MinusToken ||
 
                 // Assignment expressions (TODO: consider making this a type of AssignmentExpression rather than kind of BinaryExpression)
-                $operator === PhpParser\TokenKind::AsteriskEqualsToken||
+                $operator === PhpParser\TokenKind::AsteriskEqualsToken ||
                 $operator === PhpParser\TokenKind::AsteriskAsteriskEqualsToken ||
                 $operator === PhpParser\TokenKind::MinusEqualsToken ||
                 $operator === PhpParser\TokenKind::PlusEqualsToken
@@ -1009,7 +1013,6 @@ class DefinitionResolver
         return new Types\Mixed_;
     }
 
-
     /**
      * Takes any class name node (from a static method call, or new node) and returns a Type object
      * Resolves keywords like self, static and parent
@@ -1030,7 +1033,7 @@ class DefinitionResolver
             // `new static`
             return new Types\Static_;
         }
-        $className = (string)$class->getResolvedName();
+        $className = (string) $class->getResolvedName();
 
         if ($className === 'self' || $className === 'parent') {
             $classNode = $class->getFirstAncestor(Node\Statement\ClassDeclaration::class);
@@ -1039,13 +1042,13 @@ class DefinitionResolver
                     return new Types\Object_;
                 }
                 // parent is resolved to the parent class
-                $classFqn = (string)$classNode->classBaseClause->baseClass->getResolvedName();
+                $classFqn = (string) $classNode->classBaseClause->baseClass->getResolvedName();
             } else {
                 if ($classNode === null) {
                     return new Types\Self_;
                 }
                 // self is resolved to the containing class
-                $classFqn = (string)$classNode->getNamespacedName();
+                $classFqn = (string) $classNode->getNamespacedName();
             }
             return new Types\Object_(new Fqsen('\\' . $classFqn));
         }
@@ -1102,7 +1105,7 @@ class DefinitionResolver
                     // Resolve a string like "bool" to a type object
                     $type = $this->typeResolver->resolve($node->typeDeclaration->getText($node->getFileContents()));
                 } else {
-                    $type = new Types\Object_(new Fqsen('\\' . (string)$node->typeDeclaration->getResolvedName()));
+                    $type = new Types\Object_(new Fqsen('\\' . (string) $node->typeDeclaration->getResolvedName()));
                 }
             }
             // function foo($a = 3)
@@ -1128,6 +1131,7 @@ class DefinitionResolver
             if (
                 $docBlock !== null
                 && !empty($returnTags = $docBlock->getTagsByName('return'))
+                && !($returnTags[0] instanceof InvalidTag)
                 && $returnTags[0]->getType() !== null
             ) {
                 // Use @return tag
@@ -1151,7 +1155,7 @@ class DefinitionResolver
                         return $selfType;
                     }
                 }
-                return new Types\Object_(new Fqsen('\\' . (string)$node->returnType->getResolvedName()));
+                return new Types\Object_(new Fqsen('\\' . (string) $node->returnType->getResolvedName()));
             }
             // Unknown return type
             return new Types\Mixed_;
@@ -1239,7 +1243,7 @@ class DefinitionResolver
         if (
             $node instanceof PhpParser\ClassLike
         ) {
-            $className = (string)$node->getNamespacedName();
+            $className = (string) $node->getNamespacedName();
             // An (invalid) class declaration without a name will have an empty string as name,
             // but should not define an FQN
             if ($className === '') {
@@ -1260,7 +1264,7 @@ class DefinitionResolver
         // function a();           A\B\a();
         if ($node instanceof Node\Statement\FunctionDeclaration) {
             // Function: use functionName() as the name
-            $name = (string)$node->getNamespacedName();
+            $name = (string) $node->getNamespacedName();
             return $name === "" ? null : $name . '()';
         }
 
@@ -1281,9 +1285,9 @@ class DefinitionResolver
                 return null;
             }
             if ($node->isStatic()) {
-                return (string)$class->getNamespacedName() . '::' . $node->getName() . '()';
+                return (string) $class->getNamespacedName() . '::' . $node->getName() . '()';
             } else {
-                return (string)$class->getNamespacedName() . '->' . $node->getName() . '()';
+                return (string) $class->getNamespacedName() . '->' . $node->getName() . '()';
             }
         }
 
@@ -1304,11 +1308,11 @@ class DefinitionResolver
             $name = $node->getName();
             if ($propertyDeclaration->isStatic()) {
                 // Static Property: use ClassName::$propertyName as name
-                return (string)$classDeclaration->getNamespacedName() . '::$' . $name;
+                return (string) $classDeclaration->getNamespacedName() . '::$' . $name;
             }
 
             // Instance Property: use ClassName->propertyName as name
-            return (string)$classDeclaration->getNamespacedName() . '->' . $name;
+            return (string) $classDeclaration->getNamespacedName() . '->' . $name;
         }
 
         // INPUT                        OUTPUT
@@ -1320,7 +1324,7 @@ class DefinitionResolver
         if (($constDeclaration = ParserHelpers\tryGetConstOrClassConstDeclaration($node)) !== null) {
             if ($constDeclaration instanceof Node\Statement\ConstDeclaration) {
                 // Basic constant: use CONSTANT_NAME as name
-                return (string)$node->getNamespacedName();
+                return (string) $node->getNamespacedName();
             }
 
             // Class constant: use ClassName::CONSTANT_NAME as name
@@ -1332,7 +1336,7 @@ class DefinitionResolver
             if (!isset($classDeclaration->name)) {
                 return null;
             }
-            return (string)$classDeclaration->getNamespacedName() . '::' . $node->getName();
+            return (string) $classDeclaration->getNamespacedName() . '::' . $node->getName();
         }
 
         if (ParserHelpers\isConstDefineExpression($node)) {
