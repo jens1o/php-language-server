@@ -4,6 +4,7 @@ namespace LanguageServer\Factory;
 
 use LanguageServer\Definition;
 use LanguageServerProtocol\CompletionItem;
+use LanguageServerProtocol\CompletionItemTag;
 use LanguageServerProtocol\CompletionItemKind;
 use LanguageServerProtocol\SymbolKind;
 
@@ -20,6 +21,9 @@ class CompletionItemFactory
         $item = new CompletionItem;
         $item->label = $def->symbolInformation->name;
         $item->kind = CompletionItemKind::fromSymbolKind($def->symbolInformation->kind);
+        if ($def->isDeprecated) {
+            $item->tags = [CompletionItemTag::DEPRECATED];
+        }
         if ($def->type) {
             $item->detail = (string)$def->type;
         } else if ($def->symbolInformation->containerName) {

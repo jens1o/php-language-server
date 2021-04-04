@@ -61,6 +61,13 @@ class Definition
     public $isStatic;
 
     /**
+     * Whether the definition was marked as deprecated.
+     *
+     * @var bool
+     */
+    public $isDeprecated;
+
+    /**
      * True if the Definition is a class
      *
      * @var bool

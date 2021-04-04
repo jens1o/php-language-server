@@ -168,7 +168,7 @@ class DefinitionResolver
                 // create() throws when it thinks the doc comment has invalid fields.
                 // For example, a @see tag that is followed by something that doesn't look like a valid fqsen will throw.
                 return $this->docBlockFactory->create($docCommentText, $context);
-            } catch (\InvalidArgumentException$e) {
+            } catch (\InvalidArgumentException | \RuntimeException $e) {
                 return null;
             }
         }
@@ -222,6 +222,8 @@ class DefinitionResolver
             (($propertyDeclaration = ParserHelpers\tryGetPropertyDeclaration($node)) !== null
                 && $propertyDeclaration->isStatic())
         );
+
+        $def->isDeprecated = $this->getIsDeprecated($node);
 
         if ($node instanceof Node\Statement\ClassDeclaration &&
             // TODO - this should be better represented in the parser API
@@ -1056,6 +1058,25 @@ class DefinitionResolver
     }
 
     /**
+     * Returns whether the given node is considered deprecated or not.
+     *
+     * @param Node $node
+     * @return bool|null
+     */
+    public function getIsDeprecated($node): ?bool
+    {
+        // naive implementation for now
+        // todo: check cases where this isn't marked at the node itself
+
+        $docBlock = $this->getDocBlock($node);
+        if ($docBlock !== null) {
+            return $docBlock->hasTag('deprecated');
+        }
+
+        return false;
+    }
+
+    /**
      * Returns the type a reference to this symbol will resolve to.
      * For properties and constants, this is the type of the property/constant.
      * For functions and methods, this is the return type.
@@ -1198,6 +1219,7 @@ class DefinitionResolver
             if (
                 ($docBlock = $this->getDocBlock($declarationNode))
                 && !empty($varTags = $docBlock->getTagsByName('var'))
+                && !($varTags[0] instanceof InvalidTag)
                 && ($type = $varTags[0]->getType())
             ) {
                 return $type;
@@ -1358,6 +1380,10 @@ class DefinitionResolver
         }
         $tags = $docBlock->getTagsByName('param');
         foreach ($tags as $tag) {
+            if ($tag instanceof InvalidTag) {
+                continue;
+            }
+
             if ($tag->getVariableName() === \ltrim($variableName, "$")) {
                 return $tag;
             }

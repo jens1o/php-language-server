@@ -28,7 +28,7 @@
         "php": "^8.0",
         "composer/xdebug-handler": "^1.0",
         "felixfbecker/advanced-json-rpc": "^3.0.0",
-        "felixfbecker/language-server-protocol": "^1.0.1",
+        "felixfbecker/language-server-protocol": "dev-dev-tags",
         "jetbrains/phpstorm-stubs": "dev-master",
         "microsoft/tolerant-php-parser": "0.0.*",
         "netresearch/jsonmapper": "^1.0",
@@ -44,6 +44,12 @@
         "phan/phan": "^4.0",
         "squizlabs/php_codesniffer": "^3.1"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/jens1o/php-language-server-protocol"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "LanguageServer\\": "src/"

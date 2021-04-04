@@ -11,6 +11,7 @@ use LanguageServerProtocol\{
     Position,
     CompletionList,
     CompletionItem,
+    CompletionItemTag,
     CompletionItemKind,
     CompletionContext,
     CompletionTriggerKind
@@ -228,6 +229,9 @@ class CompletionProvider
                 $item = new CompletionItem;
                 $item->kind = CompletionItemKind::VARIABLE;
                 $item->label = '$' . $var->getName();
+                if (($isDeprecated = $this->definitionResolver->getIsDeprecated($var))) {
+                    $item->tags = [CompletionItemTag::DEPRECATED];
+                }
                 $item->documentation = $this->definitionResolver->getDocumentationFromNode($var);
                 $item->detail = (string)$this->definitionResolver->getTypeFromNode($var);
                 $item->textEdit = new TextEdit(
